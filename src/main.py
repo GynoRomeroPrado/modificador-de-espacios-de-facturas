@@ -1,12 +1,13 @@
 """
 Script principal para Data Augmentation de Facturas
 
-Este script toma facturas existentes (imagen + JSON) y genera múltiples
+Este script toma facturas existentes (PDF + JSON) y genera múltiples
 variaciones mediante transformaciones geométricas simples (desplazamientos).
 """
 
 import os
 import sys
+import shutil
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List
@@ -25,7 +26,7 @@ from augmentation import InvoiceAugmenter
 class InvoiceDatasetAugmenter:
     """Clase principal para augmentar datasets de facturas"""
 
-    def __init__(self, input_dir: str, output_dir: str, dpi: int = 200):
+    def __init__(self, input_dir: str, output_dir: str, dpi: int = 200, max_invoices: int = None):
         """
         Inicializa el augmenter del dataset.
 
@@ -33,9 +34,11 @@ class InvoiceDatasetAugmenter:
             input_dir: Directorio con las facturas originales
             output_dir: Directorio donde guardar los resultados
             dpi: DPI para convertir PDFs (default: 200)
+            max_invoices: Número máximo de facturas a procesar (None = todas)
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
+        self.max_invoices = max_invoices
 
         self.image_processor = ImageProcessor(dpi=dpi)
         self.augmenter = InvoiceAugmenter(self.image_processor)
@@ -67,19 +70,24 @@ class InvoiceDatasetAugmenter:
         invoice_pairs = find_invoice_pairs(self.input_dir)
 
         if not invoice_pairs:
-            print("❌ No se encontraron pares de facturas (imagen + JSON)")
+            print("❌ No se encontraron pares de facturas (PDF + JSON)")
             return self.stats
 
-        print(f"✅ Se encontraron {len(invoice_pairs)} facturas")
+        # Limitar número de facturas si se especificó
+        if self.max_invoices and self.max_invoices < len(invoice_pairs):
+            invoice_pairs = invoice_pairs[:self.max_invoices]
+            print(f"✅ Procesando {self.max_invoices} de {len(invoice_pairs)} facturas disponibles")
+        else:
+            print(f"✅ Se encontraron {len(invoice_pairs)} facturas")
 
         # Procesar cada factura
         print("\n" + "=" * 60)
         print("📋 PROCESANDO FACTURAS")
         print("=" * 60)
 
-        for idx, (image_path, json_path) in enumerate(invoice_pairs, start=1):
+        for idx, (pdf_path, json_path) in enumerate(invoice_pairs, start=1):
             self._process_invoice(
-                image_path,
+                pdf_path,
                 json_path,
                 idx,
                 len(invoice_pairs),
@@ -99,7 +107,7 @@ class InvoiceDatasetAugmenter:
 
     def _process_invoice(
         self,
-        image_path: str,
+        pdf_path: str,
         json_path: str,
         index: int,
         total: int,
@@ -109,118 +117,100 @@ class InvoiceDatasetAugmenter:
         Procesa una factura individual.
 
         Args:
-            image_path: Ruta a la imagen de la factura
+            pdf_path: Ruta al PDF de la factura
             json_path: Ruta al JSON de la factura
             index: Índice de la factura (1-based)
             total: Total de facturas
             output_dirs: Diccionario con directorios de salida
         """
         try:
-            original_name = Path(image_path).stem
+            original_name = Path(pdf_path).stem
             print(f"\n[{index}/{total}] Procesando: {original_name}")
 
-            # Cargar imagen y JSON
-            print("  📥 Cargando imagen y JSON...")
-            image = self.image_processor.load_image(image_path)
+            # Cargar PDF y JSON
+            print("  📥 Cargando PDF y JSON...")
+            image = self.image_processor.load_image(pdf_path)
             json_data = load_json(json_path)
 
-            # Generar nombre estandarizado
-            base_filename = f"factura_{index:04d}"
-            original_extension = Path(image_path).suffix
-
-            # Guardar factura original renombrada
-            print("  💾 Guardando factura original renombrada...")
-            self._save_organized_invoice(
-                image,
-                json_data,
-                base_filename,
-                original_extension,
-                output_dirs['organized']
+            # 1. Guardar factura original (copia)
+            print("  💾 Guardando factura original...")
+            self._save_original_invoice(
+                pdf_path,
+                json_path,
+                original_name,
+                output_dirs
             )
 
-            # Generar variaciones augmentadas
+            # 2. Generar 16 variaciones augmentadas
             print("  🔄 Generando 16 variaciones augmentadas...")
             augmented_data = self.augmenter.augment_invoice(
                 image,
                 json_data,
-                base_filename
+                original_name
             )
 
-            # Guardar variaciones augmentadas
+            # 3. Guardar variaciones augmentadas
             print("  💾 Guardando variaciones...")
             self._save_augmented_invoices(
                 augmented_data,
-                output_dirs['augmented']
+                output_dirs
             )
 
             # Actualizar estadísticas
             self.stats['original_invoices'] += 1
             self.stats['augmented_invoices'] += len(augmented_data)
 
-            print(f"  ✅ Completado: 1 original + {len(augmented_data)} augmentadas")
+            print(f"  ✅ Completado: 1 original + {len(augmented_data)} augmentadas = {len(augmented_data) + 1} archivos")
 
         except Exception as e:
-            error_msg = f"Error procesando {image_path}: {str(e)}"
+            error_msg = f"Error procesando {pdf_path}: {str(e)}"
             print(f"  ❌ {error_msg}")
             self.stats['errors'].append(error_msg)
 
-    def _save_organized_invoice(
+    def _save_original_invoice(
         self,
-        image,
-        json_data: Dict,
-        base_filename: str,
-        original_extension: str,
-        output_dir: str
+        pdf_path: str,
+        json_path: str,
+        original_name: str,
+        output_dirs: Dict
     ) -> None:
         """
-        Guarda la factura original renombrada.
+        Guarda la factura original (copia del PDF y JSON).
 
         Args:
-            image: Imagen de la factura
-            json_data: Datos JSON de la factura
-            base_filename: Nombre base (sin extensión)
-            original_extension: Extensión original del archivo
-            output_dir: Directorio de salida
+            pdf_path: Ruta al PDF original
+            json_path: Ruta al JSON original
+            original_name: Nombre original del archivo (sin extensión)
+            output_dirs: Diccionario con directorios de salida
         """
-        # Guardar imagen
-        image_filename = f"{base_filename}{original_extension}"
-        image_path = os.path.join(output_dir, image_filename)
+        # Copiar PDF original
+        pdf_output = os.path.join(output_dirs['facturas_procesadas'], f"{original_name}.pdf")
+        shutil.copy2(pdf_path, pdf_output)
 
-        if original_extension.lower() == '.pdf':
-            # Si era PDF, guardamos como PNG
-            self.image_processor.save_image(image, image_path.replace('.pdf', '.png'))
-        else:
-            self.image_processor.save_image(image, image_path)
-
-        # Actualizar y guardar JSON
-        updated_json = json_data.copy()
-        updated_json['filename'] = image_filename
-        if 'archivo_factura' in updated_json:
-            updated_json['archivo_factura'] = image_filename
-
-        json_path = os.path.join(output_dir, f"{base_filename}.json")
-        save_json(updated_json, json_path)
+        # Copiar JSON original
+        json_output = os.path.join(output_dirs['anotaciones'], f"{original_name}.json")
+        shutil.copy2(json_path, json_output)
 
     def _save_augmented_invoices(
         self,
         augmented_data: List,
-        output_dir: str
+        output_dirs: Dict
     ) -> None:
         """
         Guarda las facturas augmentadas.
 
         Args:
             augmented_data: Lista de tuplas (imagen, json, filename)
-            output_dir: Directorio de salida
+            output_dirs: Diccionario con directorios de salida
         """
         for aug_image, aug_json, filename in augmented_data:
-            # Guardar imagen
-            image_path = os.path.join(output_dir, filename)
-            self.image_processor.save_image(aug_image, image_path)
+            # Guardar PDF
+            pdf_path = os.path.join(output_dirs['facturas_procesadas'], filename)
+            self.image_processor.save_image(aug_image, pdf_path)
 
             # Guardar JSON
-            json_filename = filename.replace('.png', '.json')
-            json_path = os.path.join(output_dir, json_filename)
+            json_filename = filename.replace('.pdf', '.json')
+            json_path = os.path.join(output_dirs['anotaciones'], json_filename)
             save_json(aug_json, json_path)
 
     def _calculate_final_stats(self) -> None:
@@ -274,13 +264,15 @@ class InvoiceDatasetAugmenter:
 def main():
     """Función principal"""
     if len(sys.argv) < 3:
-        print("Uso: python main.py <input_dir> <output_dir>")
+        print("Uso: python main.py <input_dir> <output_dir> [max_invoices]")
         print("\nEjemplo:")
-        print("  python main.py /Drive/Facturas /Drive/Facturas_Procesadas")
+        print("  python main.py 'Datos extraidos de Originales' facturas_con_margenes_modificados")
+        print("  python main.py 'Datos extraidos de Originales' facturas_con_margenes_modificados 1")
         sys.exit(1)
 
     input_dir = sys.argv[1]
     output_dir = sys.argv[2]
+    max_invoices = int(sys.argv[3]) if len(sys.argv) > 3 else None
 
     # Validar que el directorio de entrada exista
     if not os.path.exists(input_dir):
@@ -288,7 +280,7 @@ def main():
         sys.exit(1)
 
     # Crear augmenter y procesar
-    augmenter = InvoiceDatasetAugmenter(input_dir, output_dir)
+    augmenter = InvoiceDatasetAugmenter(input_dir, output_dir, max_invoices=max_invoices)
     stats = augmenter.process_dataset()
 
     # Retornar código de error si hubo problemas

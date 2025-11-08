@@ -81,7 +81,7 @@ class InvoiceAugmenter:
         """
         augmented_data = []
 
-        for idx, transform in enumerate(self.config.TRANSFORMATIONS, start=1):
+        for transform in self.config.TRANSFORMATIONS:
             # Aplicar transformación a la imagen
             augmented_image = self.image_processor.apply_shift(
                 image,
@@ -93,12 +93,11 @@ class InvoiceAugmenter:
             augmented_json = self._create_augmented_json(
                 json_data,
                 base_filename,
-                idx,
                 transform
             )
 
-            # Generar nombre de archivo
-            filename = f"{base_filename}_aug_{idx:02d}_{transform['name']}.png"
+            # Generar nombre de archivo (mantiene nombre original + transformación + .pdf)
+            filename = f"{base_filename}_{transform['name']}.pdf"
 
             augmented_data.append((augmented_image, augmented_json, filename))
 
@@ -108,26 +107,24 @@ class InvoiceAugmenter:
         self,
         original_json: Dict,
         base_filename: str,
-        aug_index: int,
         transform: Dict
     ) -> Dict:
         """
-        Crea una copia del JSON original con metadata de augmentation.
+        Crea una copia del JSON original actualizado con el nuevo nombre.
 
         Args:
             original_json: JSON original
             base_filename: Nombre base del archivo
-            aug_index: Índice de la augmentación
             transform: Diccionario con info de la transformación
 
         Returns:
-            Nuevo JSON con metadata de augmentation
+            Copia del JSON con nombre de archivo actualizado
         """
         # Crear copia profunda del JSON original
         augmented_json = copy.deepcopy(original_json)
 
         # Actualizar nombre de archivo
-        new_filename = f"{base_filename}_aug_{aug_index:02d}_{transform['name']}.png"
+        new_filename = f"{base_filename}_{transform['name']}.pdf"
 
         # Si existe campo 'filename', actualizarlo
         if 'filename' in augmented_json:
@@ -136,18 +133,6 @@ class InvoiceAugmenter:
         # Si existe campo 'archivo_factura', actualizarlo
         if 'archivo_factura' in augmented_json:
             augmented_json['archivo_factura'] = new_filename
-
-        # Agregar metadata de augmentation
-        augmented_json['augmentation'] = {
-            'original_filename': f"{base_filename}.pdf",
-            'transformation': transform['name'],
-            'shift_x': transform['shift_x'],
-            'shift_y': transform['shift_y'],
-            'augmentation_index': aug_index
-        }
-
-        # Marcar como dato augmentado
-        augmented_json['is_augmented'] = True
 
         return augmented_json
 

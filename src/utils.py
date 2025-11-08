@@ -38,30 +38,39 @@ def save_json(data: Dict, output_path: str, indent: int = 2) -> None:
 
 def find_invoice_pairs(input_dir: str) -> List[Tuple[str, str]]:
     """
-    Encuentra pares de factura (imagen + JSON) en un directorio.
+    Encuentra pares de factura (PDF + JSON) en estructura de directorios específica.
 
     Args:
-        input_dir: Directorio donde buscar las facturas
+        input_dir: Directorio raíz donde buscar (debe contener facturas_procesadas/ y anotaciones/)
 
     Returns:
-        Lista de tuplas (ruta_imagen, ruta_json)
+        Lista de tuplas (ruta_pdf, ruta_json)
     """
     input_path = Path(input_dir)
     pairs = []
 
-    # Extensiones de imagen soportadas
-    image_extensions = {'.pdf', '.jpg', '.jpeg', '.png'}
+    # Directorios esperados
+    facturas_dir = input_path / 'facturas_procesadas'
+    anotaciones_dir = input_path / 'anotaciones'
 
-    # Buscar todos los archivos de imagen
-    for img_file in input_path.iterdir():
-        if img_file.suffix.lower() in image_extensions:
-            # Buscar el JSON correspondiente
-            json_file = img_file.with_suffix('.json')
+    # Validar que existan los directorios
+    if not facturas_dir.exists():
+        print(f"❌ Error: No se encontró el directorio {facturas_dir}")
+        return pairs
 
-            if json_file.exists():
-                pairs.append((str(img_file), str(json_file)))
-            else:
-                print(f"⚠️  Advertencia: No se encontró JSON para {img_file.name}")
+    if not anotaciones_dir.exists():
+        print(f"❌ Error: No se encontró el directorio {anotaciones_dir}")
+        return pairs
+
+    # Buscar todos los PDFs en facturas_procesadas
+    for pdf_file in facturas_dir.glob('*.pdf'):
+        # Buscar el JSON correspondiente en anotaciones
+        json_file = anotaciones_dir / f"{pdf_file.stem}.json"
+
+        if json_file.exists():
+            pairs.append((str(pdf_file), str(json_file)))
+        else:
+            print(f"⚠️  Advertencia: No se encontró JSON para {pdf_file.name}")
 
     return pairs
 
@@ -108,8 +117,8 @@ def create_output_dirs(output_dir: str) -> Dict[str, str]:
     output_path = Path(output_dir)
 
     dirs = {
-        'organized': output_path / 'organized',
-        'augmented': output_path / 'augmented'
+        'facturas_procesadas': output_path / 'facturas_procesadas',
+        'anotaciones': output_path / 'anotaciones'
     }
 
     for dir_path in dirs.values():

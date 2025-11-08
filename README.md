@@ -1,162 +1,154 @@
 # 🚀 Data Augmentation para Facturas
 
-Sistema automático que expande datasets de facturas mediante transformaciones geométricas, multiplicando tus datos para entrenar modelos de detección más robustos.
+Sistema de expansión de datasets de facturas mediante transformaciones geométricas (desplazamientos). Perfecto para aumentar datos de entrenamiento para modelos de detección de campos en facturas.
 
-## 📋 ¿Qué hace este proyecto?
+## ✨ Características
 
-Este sistema toma tus facturas existentes (imagen + JSON con datos extraídos) y **genera múltiples variaciones** mediante desplazamientos de píxeles en diferentes direcciones.
+- ✅ **Mantiene nombres originales** de los archivos
+- ✅ **Genera 16 variaciones** por cada factura (desplazamientos en diferentes direcciones)
+- ✅ **Salida en PDF** (igual que entrada)
+- ✅ **Estructura organizada** (facturas_procesadas/ y anotaciones/)
+- ✅ **Control de cantidad** (procesa 1 factura para pruebas o todas)
+- ✅ **Optimizado para Google Colab** (fácil integración con Google Drive)
 
-### Resultado:
-- **Input:** 10 facturas
-- **Output:** 170 facturas (10 originales + 160 variaciones)
-- **Multiplicador:** 17x tu dataset
+## 📊 ¿Qué hace?
 
-## 🎯 ¿Por qué usar Data Augmentation?
+Por cada factura en tu dataset:
+- **Entrada:** 1 PDF + 1 JSON
+- **Salida:** 17 PDFs + 17 JSONs (1 original + 16 variaciones)
 
-Los desplazamientos de píxeles hacen que los bounding boxes cambien de posición. Cuando entrenes tu modelo, aprenderá a detectar campos de facturas en **diferentes posiciones**, no solo en las posiciones exactas de tus facturas originales.
+### Transformaciones aplicadas (16 variaciones):
 
-**Beneficios:**
-- Mayor robustez del modelo
-- Mejor generalización
-- Reducción de overfitting
-- Más datos sin necesidad de recolectar más facturas reales
+| Tipo | Direcciones | Magnitudes |
+|------|-------------|------------|
+| **Horizontal** | derecha, izquierda | 10px, 20px, 30px |
+| **Vertical** | arriba, abajo | 10px, 20px, 30px |
+| **Diagonal** | 4 direcciones | 10px |
 
-## 📥 Input Requerido
+**Total:** 16 transformaciones
 
-Tu directorio de entrada debe contener pares de archivos:
+## 📁 Estructura de Datos
 
+### Entrada esperada:
 ```
-Drive/Facturas/
-├── factura_random_name_1.pdf      ← Imagen de factura
-├── factura_random_name_1.json     ← JSON con data extraída
-├── otra_factura.jpg                ← Imagen de factura
-├── otra_factura.json               ← JSON con data extraída
-└── ...
-```
-
-**Formatos soportados:**
-- Imágenes: `.pdf`, `.jpg`, `.jpeg`, `.png`
-- Datos: `.json` (debe tener el mismo nombre que la imagen)
-
-**Estructura del JSON:**
-```json
-{
-  "filename": "factura_random_name_1.pdf",
-  "datos_extraidos": {
-    "emisor_ruc": "20505670443",
-    "total": 364.8,
-    ...
-  }
-}
+Datos extraidos de Originales/
+├── facturas_procesadas/
+│   ├── IMG-20251026-WA0038.pdf
+│   ├── IMG-20251026-WA0039.pdf
+│   └── ... (más PDFs)
+└── anotaciones/
+    ├── IMG-20251026-WA0038.json
+    ├── IMG-20251026-WA0039.json
+    └── ... (más JSONs)
 ```
 
-## 📤 Output Generado
-
+### Salida generada:
 ```
-Drive/Facturas_Procesadas/
-├── organized/
-│   ├── factura_0001.pdf       ← Renombrada
-│   ├── factura_0001.json
-│   ├── factura_0002.jpg
-│   ├── factura_0002.json
-│   └── ...
+facturas_con_margenes_modificados/
+├── facturas_procesadas/
+│   ├── IMG-20251026-WA0038.pdf                    # Original (copia)
+│   ├── IMG-20251026-WA0038_derecha_small.pdf      # Variación
+│   ├── IMG-20251026-WA0038_izquierda_small.pdf    # Variación
+│   ├── IMG-20251026-WA0038_abajo_small.pdf        # Variación
+│   ├── IMG-20251026-WA0038_arriba_small.pdf       # Variación
+│   ├── IMG-20251026-WA0038_derecha_medium.pdf     # Variación
+│   └── ... (11 variaciones más)
 │
-├── augmented/
-│   ├── factura_0001_aug_01_derecha_small.png
-│   ├── factura_0001_aug_01_derecha_small.json
-│   ├── factura_0001_aug_02_izquierda_small.png
-│   ├── factura_0001_aug_02_izquierda_small.json
-│   ... (16 variaciones × N facturas)
+├── anotaciones/
+│   ├── IMG-20251026-WA0038.json                   # Original (copia)
+│   ├── IMG-20251026-WA0038_derecha_small.json     # Copia con nombre actualizado
+│   └── ... (16 copias más)
 │
-└── dataset_report.json
+└── dataset_report.json                             # Reporte del proceso
 ```
 
-## ⚙️ Transformaciones Aplicadas
+## 🎯 Uso en Google Colab (RECOMENDADO)
 
-Se generan **16 variaciones** por cada factura:
+### Paso 1: Sube tus datos a Google Drive
 
-| Tipo | Transformación | Desplazamiento |
-|------|----------------|----------------|
-| Horizontal | derecha_small, izquierda_small | ±10px |
-| Vertical | abajo_small, arriba_small | ±10px |
-| Diagonal | 4 direcciones | ±10px |
-| Horizontal | derecha_medium, izquierda_medium | ±20px |
-| Vertical | abajo_medium, arriba_medium | ±20px |
-| Horizontal | derecha_large, izquierda_large | ±30px |
-| Vertical | abajo_large, arriba_large | ±30px |
-
-## 🚀 Uso desde Google Colab
-
-### Opción 1: Notebook (Recomendado)
-
-1. Abre el notebook en Colab:
-   - Sube `notebooks/Invoice_Dataset_Augmentation.ipynb` a Colab
-   - O usa: [Open in Colab](https://colab.research.google.com/)
-
-2. Monta tu Google Drive
-
-3. Configura las rutas:
-   ```python
-   INPUT_DIR = "/content/drive/MyDrive/Facturas"
-   OUTPUT_DIR = "/content/drive/MyDrive/Facturas_Procesadas"
-   ```
-
-4. Ejecuta todas las celdas
-
-### Opción 2: Script Python
-
-```bash
-# En Colab
-!git clone https://github.com/GynoRomeroPrado/modificador-de-espacios-de-facturas.git
-%cd modificador-de-espacios-de-facturas
-
-# Instalar dependencias
-!pip install -r requirements.txt
-!apt-get install poppler-utils
-
-# Ejecutar
-!python src/main.py /content/drive/MyDrive/Facturas /content/drive/MyDrive/Facturas_Procesadas
+Organiza tus archivos en Google Drive:
+```
+MyDrive/
+└── Datos extraidos de Originales/
+    ├── facturas_procesadas/  # Tus PDFs aquí
+    └── anotaciones/          # Tus JSONs aquí
 ```
 
-## 💻 Uso Local
+### Paso 2: Abre el Notebook
 
-### Instalación
+1. Abre el notebook: `notebooks/Invoice_Dataset_Augmentation.ipynb` en Google Colab
+2. Sigue las instrucciones paso a paso
+3. Configura las rutas de Google Drive
+4. ¡Ejecuta!
+
+### Ejemplo de configuración:
+```python
+# En la celda de configuración del notebook
+INPUT_DIR = "/content/drive/MyDrive/Datos extraidos de Originales"
+OUTPUT_DIR = "/content/drive/MyDrive/facturas_con_margenes_modificados"
+MAX_INVOICES = 1  # Cambia a None para procesar todas
+```
+
+## 💻 Uso Local (Python Script)
+
+### Instalación:
 
 ```bash
 # Clonar repositorio
 git clone https://github.com/GynoRomeroPrado/modificador-de-espacios-de-facturas.git
 cd modificador-de-espacios-de-facturas
 
-# Crear entorno virtual (opcional)
-python -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
-
 # Instalar dependencias
 pip install -r requirements.txt
 
-# Instalar poppler (necesario para PDFs)
+# Instalar poppler (necesario para pdf2image)
 # Ubuntu/Debian:
 sudo apt-get install poppler-utils
 
 # macOS:
 brew install poppler
 
-# Windows:
-# Descargar desde: https://github.com/oschwartz10612/poppler-windows/releases/
+# Windows: Descargar desde https://github.com/oschwartz10612/poppler-windows
 ```
 
-### Ejecución
+### Uso básico:
 
 ```bash
-python src/main.py <input_dir> <output_dir>
+# Procesar TODAS las facturas
+python src/main.py "Datos extraidos de Originales" "facturas_con_margenes_modificados"
+
+# Procesar solo 1 factura (para pruebas)
+python src/main.py "Datos extraidos de Originales" "facturas_con_margenes_modificados" 1
+
+# Procesar 5 facturas
+python src/main.py "Datos extraidos de Originales" "facturas_con_margenes_modificados" 5
 ```
 
-**Ejemplo:**
-```bash
-python src/main.py ./facturas ./facturas_procesadas
+### Uso desde Python:
+
+```python
+from src.main import InvoiceDatasetAugmenter
+
+# Crear augmenter
+augmenter = InvoiceDatasetAugmenter(
+    input_dir="Datos extraidos de Originales",
+    output_dir="facturas_con_margenes_modificados",
+    dpi=200,
+    max_invoices=1  # None para procesar todas
+)
+
+# Procesar
+stats = augmenter.process_dataset()
+
+# Ver estadísticas
+print(f"Facturas procesadas: {stats['original_invoices']}")
+print(f"Variaciones generadas: {stats['augmented_invoices']}")
+print(f"Total de archivos: {stats['total_invoices']}")
 ```
 
-## 📊 Ejemplo de Ejecución
+## 📋 Ejemplo de Output
+
+Al ejecutar con 1 factura, verás:
 
 ```
 ============================================================
@@ -165,139 +157,119 @@ python src/main.py ./facturas ./facturas_procesadas
 
 📁 Creando estructura de directorios...
 
-🔍 Buscando facturas en: /Drive/Facturas
-✅ Se encontraron 10 facturas
+🔍 Buscando facturas en: Datos extraidos de Originales
+✅ Procesando 1 de 15 facturas disponibles
 
 ============================================================
 📋 PROCESANDO FACTURAS
 ============================================================
 
-[1/10] Procesando: factura_random_name_1
-  📥 Cargando imagen y JSON...
-  💾 Guardando factura original renombrada...
+[1/1] Procesando: IMG-20251026-WA0038
+  📥 Cargando PDF y JSON...
+  💾 Guardando factura original...
   🔄 Generando 16 variaciones augmentadas...
   💾 Guardando variaciones...
-  ✅ Completado: 1 original + 16 augmentadas
+  ✅ Completado: 1 original + 16 augmentadas = 17 archivos
 
-[2/10] Procesando: otra_factura
-  ...
+📊 Reporte guardado en: facturas_con_margenes_modificados/dataset_report.json
 
 ============================================================
 ✅ PROCESO COMPLETADO
 ============================================================
 
 📊 RESUMEN:
-  • Facturas originales:     10
-  • Facturas augmentadas:    160
-  • Total de facturas:       170
+  • Facturas originales:     1
+  • Facturas augmentadas:    16
+  • Total de facturas:       17
 
 🚀 Dataset expandido 17.0x
 ============================================================
 ```
 
-## 📁 Estructura del Proyecto
+## 🔧 Configuración Avanzada
 
-```
-modificador-de-espacios-de-facturas/
-├── src/
-│   ├── main.py                 # Script principal
-│   ├── utils.py                # Utilidades
-│   ├── image_processor.py      # Procesamiento de imágenes
-│   └── augmentation.py         # Lógica de augmentation
-├── notebooks/
-│   └── Invoice_Dataset_Augmentation.ipynb
-├── examples/
-├── requirements.txt
-├── .gitignore
-└── README.md
-```
+### Modificar transformaciones:
 
-## 🔧 Personalización
-
-### Modificar los desplazamientos
-
-Edita `src/augmentation.py`:
+Edita `src/augmentation.py` para cambiar las transformaciones:
 
 ```python
 class AugmentationConfig:
-    SHIFT_SMALL = 10   # Cambiar valores aquí
-    SHIFT_MEDIUM = 20
-    SHIFT_LARGE = 30
+    # Cambia las magnitudes de desplazamiento
+    SHIFT_SMALL = 10   # Cambiar a 5, 15, etc.
+    SHIFT_MEDIUM = 20  # Cambiar a 10, 25, etc.
+    SHIFT_LARGE = 30   # Cambiar a 20, 40, etc.
 ```
 
-### Modificar transformaciones
-
-Edita la lista `TRANSFORMATIONS` en `src/augmentation.py` para agregar/quitar transformaciones.
-
-### Cambiar DPI para PDFs
+### Modificar DPI de salida:
 
 ```python
 augmenter = InvoiceDatasetAugmenter(
-    input_dir=INPUT_DIR,
-    output_dir=OUTPUT_DIR,
-    dpi=300  # Mayor calidad, archivos más grandes
+    input_dir="...",
+    output_dir="...",
+    dpi=300  # Más calidad, más pesado (default: 200)
 )
 ```
 
-## 📝 Formato del JSON Augmentado
+## 📊 Formato de JSON
 
-Cada factura augmentada tiene un JSON con:
+Los JSONs NO contienen bounding boxes, solo datos extraídos de la factura:
 
 ```json
 {
-  "filename": "factura_0001_aug_01_derecha_small.png",
-  "datos_extraidos": {
-    "emisor_ruc": "20505670443",
-    "total": 364.8,
-    ...
-  },
-  "archivo_factura": "factura_0001_aug_01_derecha_small.png",
-  "augmentation": {
-    "original_filename": "factura_0001.pdf",
-    "transformation": "derecha_small",
-    "shift_x": 10,
-    "shift_y": 0,
-    "augmentation_index": 1
-  },
-  "is_augmented": true
+  "tipo_documento": "FACTURA ELECTRÓNICA",
+  "serie_completa": "F003-00015692",
+  "fecha_emision": "2025-07-21",
+  "moneda": "SOLES",
+  "emisor_ruc": "20137291313",
+  "emisor_razon_social": "MINERA YANACOCHA S.R.L.",
+  "subtotal": 13350.64,
+  "igv": 2403.12,
+  "importe_total": 15753.76
 }
 ```
 
-## ⚠️ Limitaciones
+## ❓ Preguntas Frecuentes
 
-- Solo procesa la **primera página** de archivos PDF
-- No extrae datos de las facturas (debes proporcionar los JSONs)
-- No genera bounding boxes (eso es un paso posterior)
-- No entrena modelos (solo prepara el dataset)
+### ¿Por qué 16 variaciones y no más?
 
-## 🤝 Contribuir
+16 variaciones proporcionan un buen balance entre:
+- Diversidad de datos (3 magnitudes × múltiples direcciones)
+- Tiempo de procesamiento razonable
+- Espacio en disco (17x expansión por factura)
 
-1. Fork el proyecto
-2. Crea una rama: `git checkout -b feature/nueva-funcionalidad`
-3. Commit: `git commit -am 'Agregar nueva funcionalidad'`
-4. Push: `git push origin feature/nueva-funcionalidad`
-5. Abre un Pull Request
+### ¿Puedo usar imágenes PNG/JPG en lugar de PDF?
+
+El sistema está optimizado para PDFs, pero puedes modificar `src/utils.py` para soportar otros formatos.
+
+### ¿Qué pasa si tengo 100 facturas?
+
+```
+100 facturas × 17 = 1,700 archivos totales
+Tiempo estimado: ~5-10 minutos (depende del DPI y tamaño)
+Espacio en disco: ~500MB - 2GB (depende del DPI)
+```
+
+### ¿Los JSONs se modifican?
+
+No, los JSONs se copian con el nombre actualizado pero el contenido permanece igual.
+
+## 🤝 Contribuciones
+
+¡Contribuciones son bienvenidas! Si encuentras bugs o tienes ideas para mejorar:
+
+1. Abre un Issue describiendo el problema o mejora
+2. Haz un Fork del repositorio
+3. Crea un Pull Request con tus cambios
 
 ## 📄 Licencia
 
-MIT License - ver [LICENSE](LICENSE) para más detalles
+Este proyecto está bajo la Licencia MIT. Ver archivo `LICENSE` para más detalles.
 
-## 🆘 Soporte
+## 📧 Contacto
 
-Si encuentras algún problema:
-1. Revisa que tus facturas tengan sus JSONs correspondientes
-2. Verifica que las rutas sean correctas
-3. Revisa los logs de error en el reporte
-4. Abre un [Issue](https://github.com/GynoRomeroPrado/modificador-de-espacios-de-facturas/issues)
-
-## 🎯 Próximos Pasos
-
-Después de usar este sistema:
-1. ✅ Dataset expandido
-2. 🔲 Generar bounding boxes para cada campo
-3. 🔲 Entrenar modelo de detección
-4. 🔲 Evaluar y optimizar
+- **GitHub:** [@GynoRomeroPrado](https://github.com/GynoRomeroPrado)
+- **Repositorio:** [modificador-de-espacios-de-facturas](https://github.com/GynoRomeroPrado/modificador-de-espacios-de-facturas)
 
 ---
 
-**Hecho con ❤️ para facilitar el entrenamiento de modelos de detección en facturas**
+Hecho con ❤️ para mejorar datasets de facturas

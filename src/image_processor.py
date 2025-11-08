@@ -56,13 +56,21 @@ class ImageProcessor:
 
     def save_image(self, image: Image.Image, output_path: str) -> None:
         """
-        Guarda una imagen en formato PNG.
+        Guarda una imagen en formato PNG o PDF.
 
         Args:
             image: Imagen PIL a guardar
             output_path: Ruta donde guardar la imagen
         """
-        image.save(output_path, 'PNG')
+        extension = Path(output_path).suffix.lower()
+
+        if extension == '.pdf':
+            image.save(output_path, 'PDF', resolution=self.dpi)
+        elif extension == '.png':
+            image.save(output_path, 'PNG')
+        else:
+            # Por defecto guardar como PNG
+            image.save(output_path, 'PNG')
 
     def apply_shift(
         self,

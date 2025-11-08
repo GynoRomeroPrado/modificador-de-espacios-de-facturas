@@ -1,0 +1,36 @@
+{
+  "filename": "factura_ejemplo.pdf",
+  "datos_extraidos": {
+    "emisor_ruc": "20505670443",
+    "emisor_razon_social": "EMPRESA EJEMPLO S.A.C.",
+    "emisor_direccion": "Av. Principal 123, Lima",
+    "receptor_ruc": "20123456789",
+    "receptor_razon_social": "CLIENTE EJEMPLO E.I.R.L.",
+    "receptor_direccion": "Jr. Comercio 456, Lima",
+    "tipo_comprobante": "FACTURA ELECTRONICA",
+    "serie": "F001",
+    "numero": "00012345",
+    "fecha_emision": "2024-01-15",
+    "moneda": "PEN",
+    "subtotal": 309.49,
+    "igv": 55.31,
+    "total": 364.80,
+    "items": [
+      {
+        "codigo": "PROD001",
+        "descripcion": "Producto Ejemplo 1",
+        "cantidad": 2,
+        "precio_unitario": 100.00,
+        "valor_venta": 200.00
+      },
+      {
+        "codigo": "PROD002",
+        "descripcion": "Producto Ejemplo 2",
+        "cantidad": 1,
+        "precio_unitario": 109.49,
+        "valor_venta": 109.49
+      }
+    ]
+  },
+  "archivo_factura": "factura_ejemplo.pdf"
+}

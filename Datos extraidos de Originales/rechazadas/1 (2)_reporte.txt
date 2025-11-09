@@ -1,0 +1,5 @@
+Factura rechazada: 1 (2).png
+Razón: Calidad insuficiente en una o más páginas
+
+Errores:
+  - Resolución muy baja (768x1024)

@@ -120,39 +120,88 @@ class InvoiceDatasetAugmenter:
             original_name = Path(image_path).stem
             print(f"\n[{index}/{total}] Procesando: {original_name}")
 
-            # Cargar imagen y JSON
-            print("  📥 Cargando imagen y JSON...")
-            image = self.image_processor.load_image(image_path)
+            # Cargar JSON
+            print("  📥 Cargando JSON...")
             json_data = load_json(json_path)
 
             # Generar nombre estandarizado
             base_filename = f"factura_{index:04d}"
             original_extension = Path(image_path).suffix
 
-            # Guardar factura original renombrada
-            print("  💾 Guardando factura original renombrada...")
-            self._save_organized_invoice(
-                image,
-                json_data,
-                base_filename,
-                original_extension,
-                output_dirs['organized']
-            )
+            # Detectar si es PDF para procesamiento directo
+            is_pdf = original_extension.lower() == '.pdf'
 
-            # Generar variaciones augmentadas
-            print("  🔄 Generando 16 variaciones augmentadas...")
-            augmented_data = self.augmenter.augment_invoice(
-                image,
-                json_data,
-                base_filename
-            )
+            if is_pdf:
+                # PROCESAMIENTO DIRECTO DE PDF (SIN RASTERIZAR)
+                # Esto mantiene texto vectorial y calidad original 100%
+                print("  📄 Detectado PDF - Procesamiento vectorial directo (sin rasterizar)")
 
-            # Guardar variaciones augmentadas
-            print("  💾 Guardando variaciones...")
-            self._save_augmented_invoices(
-                augmented_data,
-                output_dirs['augmented']
-            )
+                # Copiar PDF original
+                print("  💾 Guardando PDF original...")
+                import shutil
+                original_pdf_dest = os.path.join(
+                    output_dirs['organized'],
+                    f"{base_filename}{original_extension}"
+                )
+                shutil.copy2(image_path, original_pdf_dest)
+
+                # Actualizar JSON para PDF original
+                updated_json = json_data.copy()
+                updated_json['filename'] = f"{base_filename}{original_extension}"
+                if 'archivo_factura' in updated_json:
+                    updated_json['archivo_factura'] = f"{base_filename}{original_extension}"
+                json_path_dest = os.path.join(output_dirs['organized'], f"{base_filename}.json")
+                save_json(updated_json, json_path_dest)
+
+                # Generar variaciones augmentadas (manipulación directa de PDF)
+                print("  🔄 Generando 16 variaciones con manipulación directa de PDF...")
+                augmented_data = self.augmenter.augment_invoice_from_pdf(
+                    pdf_path=image_path,
+                    json_data=json_data,
+                    base_filename=base_filename,
+                    output_dir=output_dirs['augmented']
+                )
+
+                # Guardar JSONs de variaciones (PDFs ya están guardados)
+                print("  💾 Guardando JSONs de variaciones...")
+                for pdf_path, aug_json, filename in augmented_data:
+                    json_filename = filename.replace('.pdf', '.json')
+                    json_path_out = os.path.join(output_dirs['augmented'], json_filename)
+                    save_json(aug_json, json_path_out)
+
+            else:
+                # PROCESAMIENTO DE IMAGEN (PNG/JPG)
+                # Rasterizar y aplicar mejoras OCR
+                print("  🖼️  Detectado imagen - Procesamiento con mejoras OCR")
+
+                # Cargar imagen
+                print("  📥 Cargando imagen...")
+                image = self.image_processor.load_image(image_path)
+
+                # Guardar factura original renombrada con mejoras OCR
+                print("  💾 Guardando imagen original con mejoras OCR...")
+                self._save_organized_invoice(
+                    image,
+                    json_data,
+                    base_filename,
+                    original_extension,
+                    output_dirs['organized']
+                )
+
+                # Generar variaciones augmentadas
+                print("  🔄 Generando 16 variaciones augmentadas...")
+                augmented_data = self.augmenter.augment_invoice(
+                    image,
+                    json_data,
+                    base_filename
+                )
+
+                # Guardar variaciones augmentadas
+                print("  💾 Guardando variaciones...")
+                self._save_augmented_invoices(
+                    augmented_data,
+                    output_dirs['augmented']
+                )
 
             # Actualizar estadísticas
             self.stats['original_invoices'] += 1

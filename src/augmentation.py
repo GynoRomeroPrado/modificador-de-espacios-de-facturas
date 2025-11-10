@@ -3,8 +3,9 @@ Data Augmentation para facturas
 """
 
 from PIL import Image
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 import copy
+from pathlib import Path
 
 
 class AugmentationConfig:
@@ -150,6 +151,59 @@ class InvoiceAugmenter:
         augmented_json['is_augmented'] = True
 
         return augmented_json
+
+    def augment_invoice_from_pdf(
+        self,
+        pdf_path: str,
+        json_data: Dict,
+        base_filename: str,
+        output_dir: str
+    ) -> List[Tuple[str, Dict, str]]:
+        """
+        Genera variaciones de un PDF manipulándolo directamente (SIN rasterizar).
+
+        Esta es la forma CORRECTA de procesar PDFs ya que mantiene:
+        - Texto vectorial (seleccionable, perfecta calidad)
+        - Gráficos vectoriales intactos
+        - Tamaño de archivo pequeño
+        - Calidad original 100%
+
+        Args:
+            pdf_path: Ruta al PDF original
+            json_data: JSON con los datos de la factura
+            base_filename: Nombre base del archivo (sin extensión)
+            output_dir: Directorio donde guardar PDFs generados
+
+        Returns:
+            Lista de tuplas (ruta_pdf_generado, json_augmentado, nombre_archivo)
+        """
+        import os
+        augmented_data = []
+
+        for idx, transform in enumerate(self.config.TRANSFORMATIONS, start=1):
+            # Generar nombre de archivo de salida
+            filename = f"{base_filename}_aug_{idx:02d}_{transform['name']}.pdf"
+            output_pdf_path = os.path.join(output_dir, filename)
+
+            # Aplicar transformación directa al PDF (SIN rasterizar)
+            self.image_processor.apply_shift_to_pdf_direct(
+                input_pdf_path=pdf_path,
+                output_pdf_path=output_pdf_path,
+                shift_x=transform['shift_x'],
+                shift_y=transform['shift_y']
+            )
+
+            # Crear JSON augmentado
+            augmented_json = self._create_augmented_json(
+                json_data,
+                base_filename,
+                idx,
+                transform
+            )
+
+            augmented_data.append((output_pdf_path, augmented_json, filename))
+
+        return augmented_data
 
     def get_augmentation_stats(self) -> Dict:
         """

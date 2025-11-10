@@ -7,6 +7,8 @@ import pdf2image
 import numpy as np
 from typing import Union, Tuple
 from pathlib import Path
+from pypdf import PdfReader, PdfWriter
+from pypdf.generic import RectangleObject
 
 
 class ImageProcessor:
@@ -242,3 +244,89 @@ class ImageProcessor:
             image = self.enhance_for_ocr(image)
 
         self.save_image(image, output_path)
+
+    def apply_shift_to_pdf_direct(
+        self,
+        input_pdf_path: str,
+        output_pdf_path: str,
+        shift_x: int,
+        shift_y: int
+    ) -> None:
+        """
+        Aplica desplazamiento a un PDF manipulándolo directamente (SIN rasterizar).
+
+        Esta es la forma CORRECTA de procesar PDFs manteniendo:
+        - Texto vectorial (seleccionable, perfecta calidad)
+        - Gráficos vectoriales intactos
+        - Tamaño de archivo pequeño
+        - Calidad original 100%
+
+        Args:
+            input_pdf_path: Ruta al PDF original
+            output_pdf_path: Ruta donde guardar el PDF desplazado
+            shift_x: Desplazamiento horizontal en píxeles (a 300 DPI)
+                     + = derecha, - = izquierda
+            shift_y: Desplazamiento vertical en píxeles (a 300 DPI)
+                     + = abajo, - = arriba
+
+        Note:
+            Convierte píxeles (300 DPI) a puntos PDF (72 DPI):
+            puntos = píxeles * 72 / 300
+
+            Coordenadas PDF:
+            - Origen en esquina inferior izquierda
+            - Y positivo = arriba (invertido respecto a imágenes)
+
+            Transformación: [1, 0, 0, 1, tx, ty]
+            - tx: desplazamiento horizontal en puntos
+            - ty: desplazamiento vertical en puntos
+        """
+        # Convertir píxeles (300 DPI) a puntos PDF (72 DPI)
+        shift_x_points = shift_x * 72.0 / self.dpi
+        shift_y_points = shift_y * 72.0 / self.dpi
+
+        # Leer PDF original
+        reader = PdfReader(input_pdf_path)
+        writer = PdfWriter()
+
+        # Procesar cada página
+        for page in reader.pages:
+            # Obtener dimensiones originales
+            original_box = page.mediabox
+            original_width = float(original_box.width)
+            original_height = float(original_box.height)
+
+            # Calcular nuevo mediabox (expandir para acomodar desplazamiento)
+            # Si shift_x > 0, necesitamos más ancho a la derecha
+            # Si shift_x < 0, necesitamos más ancho a la izquierda
+            # Si shift_y > 0, necesitamos más alto arriba (en coord PDF)
+            # Si shift_y < 0, necesitamos más alto abajo (en coord PDF)
+
+            new_width = original_width + abs(shift_x_points)
+            new_height = original_height + abs(shift_y_points)
+
+            # Ajustar mediabox
+            page.mediabox = RectangleObject([0, 0, new_width, new_height])
+
+            # Calcular desplazamiento de contenido
+            # Si shift_x > 0, mover contenido a la derecha
+            # Si shift_x < 0, mover contenido a la derecha (para dejar espacio a la izquierda)
+            # Si shift_y > 0, mover contenido hacia arriba (en coord PDF)
+            # Si shift_y < 0, mover contenido hacia arriba (para dejar espacio abajo)
+
+            tx = shift_x_points if shift_x_points > 0 else abs(shift_x_points)
+            ty = shift_y_points if shift_y_points > 0 else abs(shift_y_points)
+
+            # Aplicar transformación de desplazamiento
+            # Matriz de transformación: [a, b, c, d, e, f]
+            # a=1, b=0, c=0, d=1 (sin escala ni rotación)
+            # e=tx (desplazamiento horizontal)
+            # f=ty (desplazamiento vertical)
+            page.add_transformation([1, 0, 0, 1, tx, ty])
+
+            # Agregar página modificada al writer
+            writer.add_page(page)
+
+        # Guardar PDF modificado
+        with open(output_pdf_path, 'wb') as output_file:
+            writer.write(output_file)

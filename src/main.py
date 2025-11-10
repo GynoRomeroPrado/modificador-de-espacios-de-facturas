@@ -26,14 +26,15 @@ from augmentation import InvoiceAugmenter
 class InvoiceDatasetAugmenter:
     """Clase principal para augmentar datasets de facturas"""
 
-    def __init__(self, input_dir: str, output_dir: str, dpi: int = 200, max_invoices: int = None):
+    def __init__(self, input_dir: str, output_dir: str, dpi: int = 420, max_invoices: int = None):
         """
         Inicializa el augmenter del dataset.
 
         Args:
             input_dir: Directorio con las facturas originales
             output_dir: Directorio donde guardar los resultados
-            dpi: DPI para convertir PDFs (default: 200)
+            dpi: DPI para convertir PDFs (default: 420 para calidad profesional)
+                 Mínimo recomendado: 420 DPI para mantener calidad original
             max_invoices: Número máximo de facturas a procesar (None = todas)
         """
         self.input_dir = input_dir

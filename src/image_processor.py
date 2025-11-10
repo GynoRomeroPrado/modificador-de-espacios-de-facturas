@@ -12,12 +12,13 @@ from pathlib import Path
 class ImageProcessor:
     """Clase para procesar imágenes de facturas"""
 
-    def __init__(self, dpi: int = 300):
+    def __init__(self, dpi: int = 420):
         """
         Inicializa el procesador de imágenes.
 
         Args:
-            dpi: DPI para convertir PDFs a imágenes (default: 300 para alta calidad)
+            dpi: DPI para convertir PDFs a imágenes (default: 420 para calidad profesional)
+                 Mínimo recomendado: 420 DPI para mantener calidad original
         """
         self.dpi = dpi
 
@@ -56,7 +57,7 @@ class ImageProcessor:
 
     def save_image(self, image: Image.Image, output_path: str) -> None:
         """
-        Guarda una imagen en formato PNG o PDF.
+        Guarda una imagen en formato PNG o PDF con máxima calidad.
 
         Args:
             image: Imagen PIL a guardar
@@ -65,12 +66,21 @@ class ImageProcessor:
         extension = Path(output_path).suffix.lower()
 
         if extension == '.pdf':
-            image.save(output_path, 'PDF', resolution=self.dpi)
+            # Guardar PDF con máxima calidad (sin compresión JPEG)
+            # resolution mantiene los DPI originales
+            image.save(
+                output_path,
+                'PDF',
+                resolution=self.dpi,
+                quality=100,  # Máxima calidad (sin pérdida)
+                optimize=False  # No optimizar (mantener calidad)
+            )
         elif extension == '.png':
-            image.save(output_path, 'PNG')
+            # PNG es sin pérdida por defecto
+            image.save(output_path, 'PNG', compress_level=0)  # Sin compresión
         else:
-            # Por defecto guardar como PNG
-            image.save(output_path, 'PNG')
+            # Por defecto guardar como PNG sin compresión
+            image.save(output_path, 'PNG', compress_level=0)
 
     def apply_shift(
         self,

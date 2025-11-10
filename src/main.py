@@ -25,14 +25,15 @@ from augmentation import InvoiceAugmenter
 class InvoiceDatasetAugmenter:
     """Clase principal para augmentar datasets de facturas"""
 
-    def __init__(self, input_dir: str, output_dir: str, dpi: int = 200):
+    def __init__(self, input_dir: str, output_dir: str, dpi: int = 300):
         """
         Inicializa el augmenter del dataset.
 
         Args:
             input_dir: Directorio con las facturas originales
             output_dir: Directorio donde guardar los resultados
-            dpi: DPI para convertir PDFs (default: 200)
+            dpi: DPI para convertir PDFs (default: 300)
+                 300 DPI es el estándar profesional para OCR de alta calidad
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
@@ -182,15 +183,19 @@ class InvoiceDatasetAugmenter:
             original_extension: Extensión original del archivo
             output_dir: Directorio de salida
         """
-        # Guardar imagen
+        # Guardar imagen con mejoras para OCR
         image_filename = f"{base_filename}{original_extension}"
         image_path = os.path.join(output_dir, image_filename)
 
         if original_extension.lower() == '.pdf':
-            # Si era PDF, guardamos como PNG
-            self.image_processor.save_image(image, image_path.replace('.pdf', '.png'))
+            # Si era PDF, guardamos como PNG con mejoras OCR
+            self.image_processor.save_image_with_ocr_enhancement(
+                image, image_path.replace('.pdf', '.png'), enhance=True
+            )
         else:
-            self.image_processor.save_image(image, image_path)
+            self.image_processor.save_image_with_ocr_enhancement(
+                image, image_path, enhance=True
+            )
 
         # Actualizar y guardar JSON
         updated_json = json_data.copy()
@@ -214,9 +219,11 @@ class InvoiceDatasetAugmenter:
             output_dir: Directorio de salida
         """
         for aug_image, aug_json, filename in augmented_data:
-            # Guardar imagen
+            # Guardar imagen con mejoras para OCR
             image_path = os.path.join(output_dir, filename)
-            self.image_processor.save_image(aug_image, image_path)
+            self.image_processor.save_image_with_ocr_enhancement(
+                aug_image, image_path, enhance=True
+            )
 
             # Guardar JSON
             json_filename = filename.replace('.png', '.json')

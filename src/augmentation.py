@@ -98,7 +98,7 @@ class InvoiceAugmenter:
             )
 
             # Generar nombre de archivo
-            filename = f"{base_filename}_aug_{idx:02d}_{transform['name']}.png"
+            filename = f"{base_filename}_aug_{idx:02d}_{transform['name']}.pdf"
 
             augmented_data.append((augmented_image, augmented_json, filename))
 
@@ -127,7 +127,7 @@ class InvoiceAugmenter:
         augmented_json = copy.deepcopy(original_json)
 
         # Actualizar nombre de archivo
-        new_filename = f"{base_filename}_aug_{aug_index:02d}_{transform['name']}.png"
+        new_filename = f"{base_filename}_aug_{aug_index:02d}_{transform['name']}.pdf"
 
         # Si existe campo 'filename', actualizarlo
         if 'filename' in augmented_json:

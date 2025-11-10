@@ -187,15 +187,10 @@ class InvoiceDatasetAugmenter:
         image_filename = f"{base_filename}{original_extension}"
         image_path = os.path.join(output_dir, image_filename)
 
-        if original_extension.lower() == '.pdf':
-            # Si era PDF, guardamos como PNG con mejoras OCR
-            self.image_processor.save_image_with_ocr_enhancement(
-                image, image_path.replace('.pdf', '.png'), enhance=True
-            )
-        else:
-            self.image_processor.save_image_with_ocr_enhancement(
-                image, image_path, enhance=True
-            )
+        # Guardar con mejoras OCR respetando la extensión original
+        self.image_processor.save_image_with_ocr_enhancement(
+            image, image_path, enhance=True
+        )
 
         # Actualizar y guardar JSON
         updated_json = json_data.copy()
@@ -226,7 +221,7 @@ class InvoiceDatasetAugmenter:
             )
 
             # Guardar JSON
-            json_filename = filename.replace('.png', '.json')
+            json_filename = filename.replace('.pdf', '.json')
             json_path = os.path.join(output_dir, json_filename)
             save_json(aug_json, json_path)
 

@@ -88,18 +88,45 @@ class ImageProcessor:
 
     def save_image(self, image: Image.Image, output_path: str) -> None:
         """
-        Guarda una imagen en formato PNG con optimización avanzada.
+        Guarda imagen respetando la extensión del archivo (PDF o PNG).
 
         Args:
             image: Imagen PIL a guardar
             output_path: Ruta donde guardar la imagen
 
         Note:
-            - optimize=True: Pillow busca la mejor compresión
-            - compress_level=9: Máxima compresión (0-9, 9 es máximo)
-            - Reduce tamaño de archivo 30-40% sin pérdida de calidad
+            - PDF: quality=100, resolution=DPI configurado
+            - PNG: optimize=True, compress_level=9 (máxima compresión sin pérdida)
+            - Mantiene todas las mejoras de calidad aplicadas
         """
-        image.save(output_path, 'PNG', optimize=True, compress_level=9)
+        extension = Path(output_path).suffix.lower()
+
+        if extension == '.pdf':
+            # PDF con máxima calidad
+            image.save(
+                output_path,
+                'PDF',
+                resolution=float(self.dpi),
+                quality=100,
+                optimize=False
+            )
+        elif extension == '.png':
+            # PNG optimizado
+            image.save(
+                output_path,
+                'PNG',
+                optimize=True,
+                compress_level=9
+            )
+        else:
+            # Por defecto: PDF con máxima calidad
+            image.save(
+                output_path,
+                'PDF',
+                resolution=float(self.dpi),
+                quality=100,
+                optimize=False
+            )
 
     def apply_shift(
         self,

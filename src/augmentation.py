@@ -17,37 +17,19 @@ class AugmentationConfig:
     SHIFT_MEDIUM = 35  # Desplazamiento mediano
     SHIFT_LARGE = 60   # Desplazamiento grande
 
-    # Definición de las 16 transformaciones
+    # Definición de las 5 transformaciones (reducido de 16)
+    # Para dataset balanceado de 4,300 facturas: 1 original + 5 variaciones = 6 archivos/factura
     TRANSFORMATIONS = [
-        # Desplazamientos horizontales pequeños
+        # Horizontales pequeñas (2)
         {"name": "derecha_small", "shift_x": SHIFT_SMALL, "shift_y": 0},
         {"name": "izquierda_small", "shift_x": -SHIFT_SMALL, "shift_y": 0},
 
-        # Desplazamientos verticales pequeños
-        {"name": "abajo_small", "shift_x": 0, "shift_y": SHIFT_SMALL},
-        {"name": "arriba_small", "shift_x": 0, "shift_y": -SHIFT_SMALL},
-
-        # Desplazamientos diagonales pequeños
-        {"name": "diagonal_dr_small", "shift_x": SHIFT_SMALL, "shift_y": SHIFT_SMALL},
-        {"name": "diagonal_dl_small", "shift_x": -SHIFT_SMALL, "shift_y": SHIFT_SMALL},
-        {"name": "diagonal_ur_small", "shift_x": SHIFT_SMALL, "shift_y": -SHIFT_SMALL},
-        {"name": "diagonal_ul_small", "shift_x": -SHIFT_SMALL, "shift_y": -SHIFT_SMALL},
-
-        # Desplazamientos horizontales medianos
-        {"name": "derecha_medium", "shift_x": SHIFT_MEDIUM, "shift_y": 0},
-        {"name": "izquierda_medium", "shift_x": -SHIFT_MEDIUM, "shift_y": 0},
-
-        # Desplazamientos verticales medianos
+        # Verticales medianas (2)
         {"name": "abajo_medium", "shift_x": 0, "shift_y": SHIFT_MEDIUM},
         {"name": "arriba_medium", "shift_x": 0, "shift_y": -SHIFT_MEDIUM},
 
-        # Desplazamientos horizontales grandes
-        {"name": "derecha_large", "shift_x": SHIFT_LARGE, "shift_y": 0},
-        {"name": "izquierda_large", "shift_x": -SHIFT_LARGE, "shift_y": 0},
-
-        # Desplazamientos verticales grandes
-        {"name": "abajo_large", "shift_x": 0, "shift_y": SHIFT_LARGE},
-        {"name": "arriba_large", "shift_x": 0, "shift_y": -SHIFT_LARGE},
+        # Diagonal grande (1) - Mayor variabilidad
+        {"name": "diagonal_dr_large", "shift_x": SHIFT_LARGE, "shift_y": SHIFT_LARGE},
     ]
 
 

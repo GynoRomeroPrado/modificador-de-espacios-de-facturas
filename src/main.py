@@ -154,7 +154,7 @@ class InvoiceDatasetAugmenter:
                 save_json(updated_json, json_path_dest)
 
                 # Generar variaciones augmentadas (manipulación directa de PDF)
-                print("  🔄 Generando 16 variaciones con manipulación directa de PDF...")
+                print("  🔄 Generando 5 variaciones con manipulación directa de PDF...")
                 augmented_data = self.augmenter.augment_invoice_from_pdf(
                     pdf_path=image_path,
                     json_data=json_data,
@@ -189,7 +189,7 @@ class InvoiceDatasetAugmenter:
                 )
 
                 # Generar variaciones augmentadas
-                print("  🔄 Generando 16 variaciones augmentadas...")
+                print("  🔄 Generando 5 variaciones augmentadas...")
                 augmented_data = self.augmenter.augment_invoice(
                     image,
                     json_data,

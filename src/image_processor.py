@@ -80,34 +80,46 @@ class ImageProcessor:
         fill_color: Tuple[int, int, int] = (255, 255, 255)
     ) -> Image.Image:
         """
-        Aplica un desplazamiento (shift) a una imagen.
+        Aplica un desplazamiento (shift) a una imagen AUMENTANDO el canvas.
+
+        IMPORTANTE: Este método NO recorta contenido. En lugar de eso,
+        aumenta el tamaño del canvas para agregar márgenes blancos.
+        TODO el contenido original permanece visible.
 
         Args:
             image: Imagen original
             shift_x: Desplazamiento horizontal en píxeles (+ = derecha, - = izquierda)
             shift_y: Desplazamiento vertical en píxeles (+ = abajo, - = arriba)
-            fill_color: Color de relleno para áreas vacías (default: blanco)
+            fill_color: Color de relleno para márgenes (default: blanco)
 
         Returns:
-            Nueva imagen con el desplazamiento aplicado
+            Nueva imagen con canvas aumentado y contenido desplazado
+
+        Ejemplos:
+            shift_x=10, shift_y=0:  Agrega 10px de margen a la IZQUIERDA
+            shift_x=-10, shift_y=0: Agrega 10px de margen a la DERECHA
+            shift_x=0, shift_y=10:  Agrega 10px de margen ARRIBA
+            shift_x=0, shift_y=-10: Agrega 10px de margen ABAJO
+            shift_x=10, shift_y=10: Agrega 10px de margen IZQUIERDA + ARRIBA
         """
-        # Crear imagen nueva con el mismo tamaño
-        shifted_image = Image.new('RGB', image.size, fill_color)
+        # Calcular nuevo tamaño del canvas (aumenta para acomodar el desplazamiento)
+        # El canvas crece en la dirección opuesta al desplazamiento
+        new_width = image.width + abs(shift_x)
+        new_height = image.height + abs(shift_y)
 
-        # Calcular coordenadas de pegado
-        paste_x = max(0, shift_x)
-        paste_y = max(0, shift_y)
+        # Crear nueva imagen con canvas más grande
+        shifted_image = Image.new('RGB', (new_width, new_height), fill_color)
 
-        # Calcular coordenadas de recorte de la imagen original
-        crop_x = max(0, -shift_x)
-        crop_y = max(0, -shift_y)
+        # Calcular posición donde pegar el contenido original (SIN RECORTAR)
+        # Si shift_x > 0: contenido se mueve a la derecha, margen queda a la izquierda
+        # Si shift_x < 0: contenido queda a la izquierda, margen queda a la derecha
+        # Si shift_y > 0: contenido se mueve abajo, margen queda arriba
+        # Si shift_y < 0: contenido queda arriba, margen queda abajo
+        paste_x = shift_x if shift_x > 0 else 0
+        paste_y = shift_y if shift_y > 0 else 0
 
-        width = image.width - abs(shift_x)
-        height = image.height - abs(shift_y)
-
-        # Recortar y pegar
-        cropped = image.crop((crop_x, crop_y, crop_x + width, crop_y + height))
-        shifted_image.paste(cropped, (paste_x, paste_y))
+        # Pegar TODA la imagen original sin recortar NADA
+        shifted_image.paste(image, (paste_x, paste_y))
 
         return shifted_image
 

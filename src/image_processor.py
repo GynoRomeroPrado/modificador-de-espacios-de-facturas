@@ -12,12 +12,12 @@ from pathlib import Path
 class ImageProcessor:
     """Clase para procesar imágenes de facturas"""
 
-    def __init__(self, dpi: int = 200):
+    def __init__(self, dpi: int = 300):
         """
         Inicializa el procesador de imágenes.
 
         Args:
-            dpi: DPI para convertir PDFs a imágenes (default: 200)
+            dpi: DPI para convertir PDFs a imágenes (default: 300 para alta calidad)
         """
         self.dpi = dpi
 

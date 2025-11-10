@@ -5,62 +5,98 @@ Data Augmentation para facturas
 from PIL import Image
 from typing import Dict, List, Tuple
 import copy
+import random
 
 
 class AugmentationConfig:
     """Configuración de transformaciones para data augmentation"""
 
-    # Desplazamientos en píxeles
-    SHIFT_SMALL = 10
-    SHIFT_MEDIUM = 20
-    SHIFT_LARGE = 30
+    # Rango de desplazamientos en píxeles (random)
+    SHIFT_MIN = 10
+    SHIFT_MAX = 45
 
-    # Definición de las 16 transformaciones
-    TRANSFORMATIONS = [
-        # Desplazamientos horizontales pequeños
-        {"name": "derecha_small", "shift_x": SHIFT_SMALL, "shift_y": 0},
-        {"name": "izquierda_small", "shift_x": -SHIFT_SMALL, "shift_y": 0},
+    # Definición de las 16 transformaciones (direcciones)
+    # Los valores exactos se generarán aleatoriamente en cada ejecución
+    TRANSFORMATION_DIRECTIONS = [
+        # Desplazamientos horizontales
+        {"name": "derecha", "direction": "x", "sign": 1},
+        {"name": "izquierda", "direction": "x", "sign": -1},
 
-        # Desplazamientos verticales pequeños
-        {"name": "abajo_small", "shift_x": 0, "shift_y": SHIFT_SMALL},
-        {"name": "arriba_small", "shift_x": 0, "shift_y": -SHIFT_SMALL},
+        # Desplazamientos verticales
+        {"name": "abajo", "direction": "y", "sign": 1},
+        {"name": "arriba", "direction": "y", "sign": -1},
 
-        # Desplazamientos diagonales pequeños
-        {"name": "diagonal_dr_small", "shift_x": SHIFT_SMALL, "shift_y": SHIFT_SMALL},
-        {"name": "diagonal_dl_small", "shift_x": -SHIFT_SMALL, "shift_y": SHIFT_SMALL},
-        {"name": "diagonal_ur_small", "shift_x": SHIFT_SMALL, "shift_y": -SHIFT_SMALL},
-        {"name": "diagonal_ul_small", "shift_x": -SHIFT_SMALL, "shift_y": -SHIFT_SMALL},
-
-        # Desplazamientos horizontales medianos
-        {"name": "derecha_medium", "shift_x": SHIFT_MEDIUM, "shift_y": 0},
-        {"name": "izquierda_medium", "shift_x": -SHIFT_MEDIUM, "shift_y": 0},
-
-        # Desplazamientos verticales medianos
-        {"name": "abajo_medium", "shift_x": 0, "shift_y": SHIFT_MEDIUM},
-        {"name": "arriba_medium", "shift_x": 0, "shift_y": -SHIFT_MEDIUM},
-
-        # Desplazamientos horizontales grandes
-        {"name": "derecha_large", "shift_x": SHIFT_LARGE, "shift_y": 0},
-        {"name": "izquierda_large", "shift_x": -SHIFT_LARGE, "shift_y": 0},
-
-        # Desplazamientos verticales grandes
-        {"name": "abajo_large", "shift_x": 0, "shift_y": SHIFT_LARGE},
-        {"name": "arriba_large", "shift_x": 0, "shift_y": -SHIFT_LARGE},
+        # Desplazamientos diagonales
+        {"name": "diagonal_dr", "direction": "xy", "sign_x": 1, "sign_y": 1},
+        {"name": "diagonal_dl", "direction": "xy", "sign_x": -1, "sign_y": 1},
+        {"name": "diagonal_ur", "direction": "xy", "sign_x": 1, "sign_y": -1},
+        {"name": "diagonal_ul", "direction": "xy", "sign_x": -1, "sign_y": -1},
     ]
+
+    @classmethod
+    def generate_transformations(cls, seed: int = None) -> List[Dict]:
+        """
+        Genera transformaciones con desplazamientos aleatorios.
+
+        Args:
+            seed: Semilla para reproducibilidad (opcional)
+
+        Returns:
+            Lista de transformaciones con valores random entre SHIFT_MIN y SHIFT_MAX
+        """
+        if seed is not None:
+            random.seed(seed)
+
+        transformations = []
+
+        # Generar 2 variaciones por dirección (16 total)
+        for direction_config in cls.TRANSFORMATION_DIRECTIONS:
+            for variant in range(2):
+                # Generar desplazamiento aleatorio entre 10-45 píxeles
+                shift_value = random.randint(cls.SHIFT_MIN, cls.SHIFT_MAX)
+
+                name = f"{direction_config['name']}_v{variant + 1}"
+
+                if direction_config["direction"] == "x":
+                    # Horizontal
+                    shift_x = direction_config["sign"] * shift_value
+                    shift_y = 0
+                elif direction_config["direction"] == "y":
+                    # Vertical
+                    shift_x = 0
+                    shift_y = direction_config["sign"] * shift_value
+                else:  # "xy" - diagonal
+                    # Para diagonales, generar valores random independientes
+                    shift_x_val = random.randint(cls.SHIFT_MIN, cls.SHIFT_MAX)
+                    shift_y_val = random.randint(cls.SHIFT_MIN, cls.SHIFT_MAX)
+                    shift_x = direction_config["sign_x"] * shift_x_val
+                    shift_y = direction_config["sign_y"] * shift_y_val
+
+                transformations.append({
+                    "name": name,
+                    "shift_x": shift_x,
+                    "shift_y": shift_y
+                })
+
+        return transformations
 
 
 class InvoiceAugmenter:
     """Clase para aplicar data augmentation a facturas"""
 
-    def __init__(self, image_processor):
+    def __init__(self, image_processor, seed: int = None):
         """
         Inicializa el augmenter.
 
         Args:
             image_processor: Instancia de ImageProcessor
+            seed: Semilla para reproducibilidad de random (opcional)
         """
         self.image_processor = image_processor
         self.config = AugmentationConfig()
+        self.seed = seed
+        # Generar transformaciones con valores random
+        self.transformations = self.config.generate_transformations(seed=seed)
 
     def augment_invoice(
         self,
@@ -81,7 +117,7 @@ class InvoiceAugmenter:
         """
         augmented_data = []
 
-        for transform in self.config.TRANSFORMATIONS:
+        for transform in self.transformations:
             # Aplicar transformación a la imagen
             augmented_image = self.image_processor.apply_shift(
                 image,
@@ -144,11 +180,15 @@ class InvoiceAugmenter:
             Diccionario con estadísticas
         """
         return {
-            'total_transformations': len(self.config.TRANSFORMATIONS),
-            'shift_levels': [
-                self.config.SHIFT_SMALL,
-                self.config.SHIFT_MEDIUM,
-                self.config.SHIFT_LARGE
-            ],
-            'transformation_types': [t['name'] for t in self.config.TRANSFORMATIONS]
+            'total_transformations': len(self.transformations),
+            'shift_range': f"{self.config.SHIFT_MIN}-{self.config.SHIFT_MAX} píxeles",
+            'transformation_types': [t['name'] for t in self.transformations],
+            'transformations_detail': [
+                {
+                    'name': t['name'],
+                    'shift_x': t['shift_x'],
+                    'shift_y': t['shift_y']
+                }
+                for t in self.transformations
+            ]
         }

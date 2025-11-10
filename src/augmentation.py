@@ -12,9 +12,10 @@ class AugmentationConfig:
     """Configuración de transformaciones para data augmentation"""
 
     # Desplazamientos en píxeles
-    SHIFT_SMALL = 10
-    SHIFT_MEDIUM = 20
-    SHIFT_LARGE = 30
+    # Rango: 15px (mínimo) a 60px (máximo)
+    SHIFT_SMALL = 15   # Desplazamiento pequeño
+    SHIFT_MEDIUM = 35  # Desplazamiento mediano
+    SHIFT_LARGE = 60   # Desplazamiento grande
 
     # Definición de las 16 transformaciones
     TRANSFORMATIONS = [

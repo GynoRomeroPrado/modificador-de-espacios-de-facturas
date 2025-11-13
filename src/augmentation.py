@@ -17,43 +17,71 @@ class AugmentationConfig:
     SHIFT_MEDIUM = 35  # Desplazamiento mediano
     SHIFT_LARGE = 60   # Desplazamiento grande
 
-    # Definición de las 10 transformaciones (procesadas en orden aleatorio)
-    # Para dataset balanceado: 1 original + 10 variaciones = 11 archivos/factura
-    TRANSFORMATIONS = [
-        # Horizontales pequeñas (2)
+    # Banco completo de 16 transformaciones disponibles (en orden de prioridad)
+    # El usuario puede elegir cuántas usar (1-16)
+    ALL_TRANSFORMATIONS = [
+        # Prioridad 1-4: Horizontales y verticales pequeñas (más sutiles)
         {"name": "derecha_small", "shift_x": SHIFT_SMALL, "shift_y": 0},
         {"name": "izquierda_small", "shift_x": -SHIFT_SMALL, "shift_y": 0},
-
-        # Verticales pequeñas (2)
         {"name": "abajo_small", "shift_x": 0, "shift_y": SHIFT_SMALL},
         {"name": "arriba_small", "shift_x": 0, "shift_y": -SHIFT_SMALL},
 
-        # Horizontales medianas (2)
+        # Prioridad 5-8: Horizontales y verticales medianas
         {"name": "derecha_medium", "shift_x": SHIFT_MEDIUM, "shift_y": 0},
         {"name": "izquierda_medium", "shift_x": -SHIFT_MEDIUM, "shift_y": 0},
-
-        # Verticales medianas (2)
         {"name": "abajo_medium", "shift_x": 0, "shift_y": SHIFT_MEDIUM},
         {"name": "arriba_medium", "shift_x": 0, "shift_y": -SHIFT_MEDIUM},
 
-        # Diagonales grandes (2) - Mayor variabilidad
+        # Prioridad 9-12: Diagonales pequeñas
+        {"name": "diagonal_dr_small", "shift_x": SHIFT_SMALL, "shift_y": SHIFT_SMALL},
+        {"name": "diagonal_ul_small", "shift_x": -SHIFT_SMALL, "shift_y": -SHIFT_SMALL},
+        {"name": "diagonal_dl_small", "shift_x": -SHIFT_SMALL, "shift_y": SHIFT_SMALL},
+        {"name": "diagonal_ur_small", "shift_x": SHIFT_SMALL, "shift_y": -SHIFT_SMALL},
+
+        # Prioridad 13-16: Diagonales grandes (mayor variabilidad)
         {"name": "diagonal_dr_large", "shift_x": SHIFT_LARGE, "shift_y": SHIFT_LARGE},
         {"name": "diagonal_ul_large", "shift_x": -SHIFT_LARGE, "shift_y": -SHIFT_LARGE},
+        {"name": "diagonal_dl_large", "shift_x": -SHIFT_LARGE, "shift_y": SHIFT_LARGE},
+        {"name": "diagonal_ur_large", "shift_x": SHIFT_LARGE, "shift_y": -SHIFT_LARGE},
     ]
+
+    def __init__(self, num_transformations: int = 10):
+        """
+        Inicializa la configuración con el número de transformaciones deseado.
+
+        Args:
+            num_transformations: Número de variaciones a generar (1-16)
+                - 1-4: Solo desplazamientos pequeños básicos
+                - 5-8: Agrega desplazamientos medianos
+                - 9-12: Agrega diagonales pequeñas
+                - 13-16: Agrega diagonales grandes (máxima variabilidad)
+
+        Raises:
+            ValueError: Si num_transformations no está en rango 1-16
+        """
+        if not 1 <= num_transformations <= 16:
+            raise ValueError(
+                f"num_transformations debe estar entre 1 y 16, recibido: {num_transformations}"
+            )
+
+        self.num_transformations = num_transformations
+        # Seleccionar las primeras N transformaciones del banco
+        self.TRANSFORMATIONS = self.ALL_TRANSFORMATIONS[:num_transformations]
 
 
 class InvoiceAugmenter:
     """Clase para aplicar data augmentation a facturas"""
 
-    def __init__(self, image_processor):
+    def __init__(self, image_processor, num_transformations: int = 10):
         """
         Inicializa el augmenter.
 
         Args:
             image_processor: Instancia de ImageProcessor
+            num_transformations: Número de variaciones a generar (1-16)
         """
         self.image_processor = image_processor
-        self.config = AugmentationConfig()
+        self.config = AugmentationConfig(num_transformations=num_transformations)
 
     def augment_invoice(
         self,

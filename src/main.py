@@ -25,7 +25,13 @@ from augmentation import InvoiceAugmenter
 class InvoiceDatasetAugmenter:
     """Clase principal para augmentar datasets de facturas"""
 
-    def __init__(self, input_dir: str, output_dir: str, dpi: int = 300):
+    def __init__(
+        self,
+        input_dir: str,
+        output_dir: str,
+        dpi: int = 300,
+        num_transformations: int = 10
+    ):
         """
         Inicializa el augmenter del dataset.
 
@@ -34,12 +40,21 @@ class InvoiceDatasetAugmenter:
             output_dir: Directorio donde guardar los resultados
             dpi: DPI para convertir PDFs (default: 300)
                  300 DPI es el estándar profesional para OCR de alta calidad
+            num_transformations: Número de variaciones a generar por factura (1-16)
+                - 1-4: Solo desplazamientos pequeños (15px)
+                - 5-8: Agrega desplazamientos medianos (35px)
+                - 9-12: Agrega diagonales pequeñas
+                - 13-16: Agrega diagonales grandes (60px) - máxima variabilidad
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
+        self.num_transformations = num_transformations
 
         self.image_processor = ImageProcessor(dpi=dpi)
-        self.augmenter = InvoiceAugmenter(self.image_processor)
+        self.augmenter = InvoiceAugmenter(
+            self.image_processor,
+            num_transformations=num_transformations
+        )
 
         self.stats = {
             'original_invoices': 0,
@@ -159,7 +174,7 @@ class InvoiceDatasetAugmenter:
                 save_json(updated_json, json_path_dest)
 
                 # Generar variaciones augmentadas (manipulación directa de PDF)
-                print("  🔄 Generando 10 variaciones con manipulación directa de PDF...")
+                print(f"  🔄 Generando {self.num_transformations} variaciones con manipulación directa de PDF...")
                 augmented_data = self.augmenter.augment_invoice_from_pdf(
                     pdf_path=image_path,
                     json_data=json_data,
@@ -194,7 +209,7 @@ class InvoiceDatasetAugmenter:
                 )
 
                 # Generar variaciones augmentadas
-                print("  🔄 Generando 10 variaciones augmentadas...")
+                print(f"  🔄 Generando {self.num_transformations} variaciones augmentadas...")
                 augmented_data = self.augmenter.augment_invoice(
                     image,
                     json_data,

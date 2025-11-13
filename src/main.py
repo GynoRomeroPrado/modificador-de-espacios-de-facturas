@@ -73,9 +73,14 @@ class InvoiceDatasetAugmenter:
 
         print(f"✅ Se encontraron {len(invoice_pairs)} facturas")
 
+        # Aleatorizar orden de procesamiento para evitar sesgos
+        import random
+        random.shuffle(invoice_pairs)
+        print(f"🔀 Orden de procesamiento aleatorizado")
+
         # Procesar cada factura
         print("\n" + "=" * 60)
-        print("📋 PROCESANDO FACTURAS")
+        print("📋 PROCESANDO FACTURAS (ORDEN ALEATORIO)")
         print("=" * 60)
 
         for idx, (image_path, json_path) in enumerate(invoice_pairs, start=1):
@@ -154,7 +159,7 @@ class InvoiceDatasetAugmenter:
                 save_json(updated_json, json_path_dest)
 
                 # Generar variaciones augmentadas (manipulación directa de PDF)
-                print("  🔄 Generando 5 variaciones con manipulación directa de PDF...")
+                print("  🔄 Generando 10 variaciones con manipulación directa de PDF...")
                 augmented_data = self.augmenter.augment_invoice_from_pdf(
                     pdf_path=image_path,
                     json_data=json_data,
@@ -189,7 +194,7 @@ class InvoiceDatasetAugmenter:
                 )
 
                 # Generar variaciones augmentadas
-                print("  🔄 Generando 5 variaciones augmentadas...")
+                print("  🔄 Generando 10 variaciones augmentadas...")
                 augmented_data = self.augmenter.augment_invoice(
                     image,
                     json_data,

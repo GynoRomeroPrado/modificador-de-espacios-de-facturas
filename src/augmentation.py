@@ -17,19 +17,28 @@ class AugmentationConfig:
     SHIFT_MEDIUM = 35  # Desplazamiento mediano
     SHIFT_LARGE = 60   # Desplazamiento grande
 
-    # Definición de las 5 transformaciones (reducido de 16)
-    # Para dataset balanceado de 4,300 facturas: 1 original + 5 variaciones = 6 archivos/factura
+    # Definición de las 10 transformaciones (procesadas en orden aleatorio)
+    # Para dataset balanceado: 1 original + 10 variaciones = 11 archivos/factura
     TRANSFORMATIONS = [
         # Horizontales pequeñas (2)
         {"name": "derecha_small", "shift_x": SHIFT_SMALL, "shift_y": 0},
         {"name": "izquierda_small", "shift_x": -SHIFT_SMALL, "shift_y": 0},
 
+        # Verticales pequeñas (2)
+        {"name": "abajo_small", "shift_x": 0, "shift_y": SHIFT_SMALL},
+        {"name": "arriba_small", "shift_x": 0, "shift_y": -SHIFT_SMALL},
+
+        # Horizontales medianas (2)
+        {"name": "derecha_medium", "shift_x": SHIFT_MEDIUM, "shift_y": 0},
+        {"name": "izquierda_medium", "shift_x": -SHIFT_MEDIUM, "shift_y": 0},
+
         # Verticales medianas (2)
         {"name": "abajo_medium", "shift_x": 0, "shift_y": SHIFT_MEDIUM},
         {"name": "arriba_medium", "shift_x": 0, "shift_y": -SHIFT_MEDIUM},
 
-        # Diagonal grande (1) - Mayor variabilidad
+        # Diagonales grandes (2) - Mayor variabilidad
         {"name": "diagonal_dr_large", "shift_x": SHIFT_LARGE, "shift_y": SHIFT_LARGE},
+        {"name": "diagonal_ul_large", "shift_x": -SHIFT_LARGE, "shift_y": -SHIFT_LARGE},
     ]
 
 

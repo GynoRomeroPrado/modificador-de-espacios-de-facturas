@@ -41,10 +41,10 @@ class InvoiceDatasetAugmenter:
             dpi: DPI para convertir PDFs (default: 300)
                  300 DPI es el estándar profesional para OCR de alta calidad
             num_transformations: Número de variaciones a generar por factura (1-16)
-                - 1-4: Solo desplazamientos pequeños (15px)
-                - 5-8: Agrega desplazamientos medianos (35px)
-                - 9-12: Agrega diagonales pequeñas
-                - 13-16: Agrega diagonales grandes (60px) - máxima variabilidad
+                Cada variación recibe desplazamientos ALEATORIOS únicos:
+                - Rango: 45-60 píxeles
+                - Direcciones: aleatorias (±X, ±Y)
+                - Sistema: CROP + DESPLAZAMIENTO para máxima variabilidad visual
         """
         self.input_dir = input_dir
         self.output_dir = output_dir

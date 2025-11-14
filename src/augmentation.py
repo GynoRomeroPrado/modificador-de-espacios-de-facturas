@@ -6,45 +6,21 @@ from PIL import Image
 from typing import Dict, List, Tuple, Optional
 import copy
 from pathlib import Path
+import random
 
 
 class AugmentationConfig:
     """Configuración de transformaciones para data augmentation"""
 
-    # Desplazamientos en píxeles
-    # Rango: 100px (mínimo) a 350px (máximo)
-    # Aumentados drásticamente para facturas que ocupan toda la página A4
-    SHIFT_SMALL = 100   # Desplazamiento pequeño (1.4 pulgadas @ 300 DPI)
-    SHIFT_MEDIUM = 200  # Desplazamiento mediano (2.8 pulgadas @ 300 DPI)
-    SHIFT_LARGE = 350   # Desplazamiento grande (4.9 pulgadas @ 300 DPI)
+    # Desplazamientos ALEATORIOS en píxeles
+    # Cada transformación usa valores únicos en este rango
+    SHIFT_MIN = 45   # Desplazamiento mínimo (0.63 pulgadas @ 300 DPI)
+    SHIFT_MAX = 60   # Desplazamiento máximo (0.84 pulgadas @ 300 DPI)
 
-    # Banco completo de 16 transformaciones disponibles (en orden de prioridad)
+    # Número máximo de transformaciones disponibles
     # El usuario puede elegir cuántas usar (1-16)
-    ALL_TRANSFORMATIONS = [
-        # Prioridad 1-4: Horizontales y verticales pequeñas (más sutiles)
-        {"name": "derecha_small", "shift_x": SHIFT_SMALL, "shift_y": 0},
-        {"name": "izquierda_small", "shift_x": -SHIFT_SMALL, "shift_y": 0},
-        {"name": "abajo_small", "shift_x": 0, "shift_y": SHIFT_SMALL},
-        {"name": "arriba_small", "shift_x": 0, "shift_y": -SHIFT_SMALL},
-
-        # Prioridad 5-8: Horizontales y verticales medianas
-        {"name": "derecha_medium", "shift_x": SHIFT_MEDIUM, "shift_y": 0},
-        {"name": "izquierda_medium", "shift_x": -SHIFT_MEDIUM, "shift_y": 0},
-        {"name": "abajo_medium", "shift_x": 0, "shift_y": SHIFT_MEDIUM},
-        {"name": "arriba_medium", "shift_x": 0, "shift_y": -SHIFT_MEDIUM},
-
-        # Prioridad 9-12: Diagonales pequeñas
-        {"name": "diagonal_dr_small", "shift_x": SHIFT_SMALL, "shift_y": SHIFT_SMALL},
-        {"name": "diagonal_ul_small", "shift_x": -SHIFT_SMALL, "shift_y": -SHIFT_SMALL},
-        {"name": "diagonal_dl_small", "shift_x": -SHIFT_SMALL, "shift_y": SHIFT_SMALL},
-        {"name": "diagonal_ur_small", "shift_x": SHIFT_SMALL, "shift_y": -SHIFT_SMALL},
-
-        # Prioridad 13-16: Diagonales grandes (mayor variabilidad)
-        {"name": "diagonal_dr_large", "shift_x": SHIFT_LARGE, "shift_y": SHIFT_LARGE},
-        {"name": "diagonal_ul_large", "shift_x": -SHIFT_LARGE, "shift_y": -SHIFT_LARGE},
-        {"name": "diagonal_dl_large", "shift_x": -SHIFT_LARGE, "shift_y": SHIFT_LARGE},
-        {"name": "diagonal_ur_large", "shift_x": SHIFT_LARGE, "shift_y": -SHIFT_LARGE},
-    ]
+    # Los desplazamientos se generan aleatoriamente para cada transformación
+    MAX_TRANSFORMATIONS = 16
 
     def __init__(self, num_transformations: int = 10):
         """
@@ -52,22 +28,40 @@ class AugmentationConfig:
 
         Args:
             num_transformations: Número de variaciones a generar (1-16)
-                - 1-4: Solo desplazamientos pequeños básicos
-                - 5-8: Agrega desplazamientos medianos
-                - 9-12: Agrega diagonales pequeñas
-                - 13-16: Agrega diagonales grandes (máxima variabilidad)
+                Cada variación tendrá desplazamientos aleatorios entre
+                SHIFT_MIN y SHIFT_MAX píxeles.
 
         Raises:
             ValueError: Si num_transformations no está en rango 1-16
         """
-        if not 1 <= num_transformations <= 16:
+        if not 1 <= num_transformations <= self.MAX_TRANSFORMATIONS:
             raise ValueError(
-                f"num_transformations debe estar entre 1 y 16, recibido: {num_transformations}"
+                f"num_transformations debe estar entre 1 y {self.MAX_TRANSFORMATIONS}, "
+                f"recibido: {num_transformations}"
             )
 
         self.num_transformations = num_transformations
-        # Seleccionar las primeras N transformaciones del banco
-        self.TRANSFORMATIONS = self.ALL_TRANSFORMATIONS[:num_transformations]
+
+    def generate_random_shifts(self) -> List[Dict]:
+        """
+        Genera desplazamientos aleatorios para todas las transformaciones.
+
+        Returns:
+            Lista de diccionarios con shift_x y shift_y aleatorios
+        """
+        transformations = []
+        for i in range(self.num_transformations):
+            # Generar desplazamientos aleatorios únicos para esta transformación
+            shift_x = random.randint(self.SHIFT_MIN, self.SHIFT_MAX) * random.choice([-1, 1])
+            shift_y = random.randint(self.SHIFT_MIN, self.SHIFT_MAX) * random.choice([-1, 1])
+
+            transformations.append({
+                "index": i + 1,
+                "shift_x": shift_x,
+                "shift_y": shift_y
+            })
+
+        return transformations
 
 
 class InvoiceAugmenter:
@@ -103,7 +97,10 @@ class InvoiceAugmenter:
         """
         augmented_data = []
 
-        for idx, transform in enumerate(self.config.TRANSFORMATIONS, start=1):
+        # Generar desplazamientos aleatorios para todas las transformaciones
+        transformations = self.config.generate_random_shifts()
+
+        for transform in transformations:
             # Aplicar transformación a la imagen
             augmented_image = self.image_processor.apply_shift(
                 image,
@@ -115,12 +112,12 @@ class InvoiceAugmenter:
             augmented_json = self._create_augmented_json(
                 json_data,
                 base_filename,
-                idx,
+                transform['index'],
                 transform
             )
 
-            # Generar nombre de archivo
-            filename = f"{base_filename}_aug_{idx:02d}_{transform['name']}.pdf"
+            # Generar nombre de archivo simplificado (sin dirección)
+            filename = f"{base_filename}_aug_{transform['index']:02d}.pdf"
 
             augmented_data.append((augmented_image, augmented_json, filename))
 
@@ -140,7 +137,7 @@ class InvoiceAugmenter:
             original_json: JSON original
             base_filename: Nombre base del archivo
             aug_index: Índice de la augmentación
-            transform: Diccionario con info de la transformación
+            transform: Diccionario con info de la transformación (shift_x, shift_y)
 
         Returns:
             Nuevo JSON con metadata de augmentation
@@ -148,8 +145,8 @@ class InvoiceAugmenter:
         # Crear copia profunda del JSON original
         augmented_json = copy.deepcopy(original_json)
 
-        # Actualizar nombre de archivo
-        new_filename = f"{base_filename}_aug_{aug_index:02d}_{transform['name']}.pdf"
+        # Actualizar nombre de archivo (simplificado, sin dirección)
+        new_filename = f"{base_filename}_aug_{aug_index:02d}.pdf"
 
         # Si existe campo 'filename', actualizarlo
         if 'filename' in augmented_json:
@@ -162,10 +159,10 @@ class InvoiceAugmenter:
         # Agregar metadata de augmentation
         augmented_json['augmentation'] = {
             'original_filename': f"{base_filename}.pdf",
-            'transformation': transform['name'],
             'shift_x': transform['shift_x'],
             'shift_y': transform['shift_y'],
-            'augmentation_index': aug_index
+            'augmentation_index': aug_index,
+            'shift_range': f"{self.config.SHIFT_MIN}-{self.config.SHIFT_MAX}px"
         }
 
         # Marcar como dato augmentado
@@ -181,7 +178,7 @@ class InvoiceAugmenter:
         output_dir: str
     ) -> List[Tuple[str, Dict, str]]:
         """
-        Genera variaciones de un PDF usando CROP + DESPLAZAMIENTO (SIN rasterizar).
+        Genera variaciones de un PDF usando CROP + DESPLAZAMIENTO ALEATORIO (SIN rasterizar).
 
         PROCESO EN 2 FASES:
 
@@ -190,16 +187,17 @@ class InvoiceAugmenter:
         - Elimina márgenes blancos del PDF
         - Resultado: PDF con SOLO contenido, sin espacios vacíos
 
-        FASE 2 - DESPLAZAMIENTO:
-        - Aplica desplazamientos DRAMÁTICOS (100px, 200px, 350px) al contenido YA RECORTADO
-        - Los shifts son EXTREMADAMENTE NOTORIOS (1.4-4.9 pulgadas @ 300 DPI)
+        FASE 2 - DESPLAZAMIENTO ALEATORIO:
+        - Aplica desplazamientos ALEATORIOS (45-60px) al contenido YA RECORTADO
+        - Cada PDF recibe desplazamientos ÚNICOS en X y Y
+        - Direcciones aleatorias (±X, ±Y)
         - Mantiene calidad vectorial 100%
 
         VENTAJAS:
         - Texto vectorial (seleccionable, perfecta calidad)
         - Gráficos vectoriales intactos
         - Tamaño de archivo pequeño
-        - Variaciones VISUALMENTE SIGNIFICATIVAS
+        - Variaciones ÚNICAS (no repetibles)
         - Calidad original 100%
 
         Args:
@@ -214,14 +212,17 @@ class InvoiceAugmenter:
         import os
         augmented_data = []
 
-        for idx, transform in enumerate(self.config.TRANSFORMATIONS, start=1):
-            # Generar nombre de archivo de salida
-            filename = f"{base_filename}_aug_{idx:02d}_{transform['name']}.pdf"
+        # Generar desplazamientos aleatorios para todas las transformaciones
+        transformations = self.config.generate_random_shifts()
+
+        for transform in transformations:
+            # Generar nombre de archivo de salida (simplificado)
+            filename = f"{base_filename}_aug_{transform['index']:02d}.pdf"
             output_pdf_path = os.path.join(output_dir, filename)
 
-            # Aplicar CROP + DESPLAZAMIENTO al PDF (SIN rasterizar)
+            # Aplicar CROP + DESPLAZAMIENTO ALEATORIO al PDF (SIN rasterizar)
             # FASE 1: Auto-crop elimina márgenes blancos
-            # FASE 2: Desplazamiento sobre contenido recortado (más notorio)
+            # FASE 2: Desplazamiento aleatorio sobre contenido recortado
             self.image_processor.apply_crop_and_shift_to_pdf(
                 input_pdf_path=pdf_path,
                 output_pdf_path=output_pdf_path,
@@ -236,7 +237,7 @@ class InvoiceAugmenter:
             augmented_json = self._create_augmented_json(
                 json_data,
                 base_filename,
-                idx,
+                transform['index'],
                 transform
             )
 
@@ -252,11 +253,12 @@ class InvoiceAugmenter:
             Diccionario con estadísticas
         """
         return {
-            'total_transformations': len(self.config.TRANSFORMATIONS),
-            'shift_levels': [
-                self.config.SHIFT_SMALL,
-                self.config.SHIFT_MEDIUM,
-                self.config.SHIFT_LARGE
-            ],
-            'transformation_types': [t['name'] for t in self.config.TRANSFORMATIONS]
+            'total_transformations': self.config.num_transformations,
+            'shift_range': {
+                'min': self.config.SHIFT_MIN,
+                'max': self.config.SHIFT_MAX,
+                'unit': 'pixels'
+            },
+            'shift_type': 'random',
+            'description': f'Cada transformación usa desplazamientos aleatorios entre {self.config.SHIFT_MIN}-{self.config.SHIFT_MAX}px'
         }

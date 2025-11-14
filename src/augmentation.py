@@ -180,12 +180,25 @@ class InvoiceAugmenter:
         output_dir: str
     ) -> List[Tuple[str, Dict, str]]:
         """
-        Genera variaciones de un PDF manipulándolo directamente (SIN rasterizar).
+        Genera variaciones de un PDF usando CROP + DESPLAZAMIENTO (SIN rasterizar).
 
-        Esta es la forma CORRECTA de procesar PDFs ya que mantiene:
+        PROCESO EN 2 FASES:
+
+        FASE 1 - AUTO-CROP:
+        - Detecta automáticamente el bounding box del contenido real
+        - Elimina márgenes blancos del PDF
+        - Resultado: PDF con SOLO contenido, sin espacios vacíos
+
+        FASE 2 - DESPLAZAMIENTO:
+        - Aplica desplazamientos (30px, 70px, 120px) al contenido YA RECORTADO
+        - Los shifts son VISUALMENTE NOTORIOS (no se pierden en márgenes)
+        - Mantiene calidad vectorial 100%
+
+        VENTAJAS:
         - Texto vectorial (seleccionable, perfecta calidad)
         - Gráficos vectoriales intactos
         - Tamaño de archivo pequeño
+        - Variaciones VISUALMENTE SIGNIFICATIVAS
         - Calidad original 100%
 
         Args:
@@ -205,12 +218,17 @@ class InvoiceAugmenter:
             filename = f"{base_filename}_aug_{idx:02d}_{transform['name']}.pdf"
             output_pdf_path = os.path.join(output_dir, filename)
 
-            # Aplicar transformación directa al PDF (SIN rasterizar)
-            self.image_processor.apply_shift_to_pdf_direct(
+            # Aplicar CROP + DESPLAZAMIENTO al PDF (SIN rasterizar)
+            # FASE 1: Auto-crop elimina márgenes blancos
+            # FASE 2: Desplazamiento sobre contenido recortado (más notorio)
+            self.image_processor.apply_crop_and_shift_to_pdf(
                 input_pdf_path=pdf_path,
                 output_pdf_path=output_pdf_path,
                 shift_x=transform['shift_x'],
-                shift_y=transform['shift_y']
+                shift_y=transform['shift_y'],
+                auto_crop=True,  # Activar auto-crop para variaciones notorias
+                detection_dpi=150,  # DPI para detección (150 es rápido y suficiente)
+                padding=10  # 10px de padding alrededor del contenido
             )
 
             # Crear JSON augmentado

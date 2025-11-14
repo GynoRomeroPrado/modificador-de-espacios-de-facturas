@@ -12,10 +12,11 @@ class AugmentationConfig:
     """Configuración de transformaciones para data augmentation"""
 
     # Desplazamientos en píxeles
-    # Rango: 30px (mínimo) a 120px (máximo)
-    SHIFT_SMALL = 30   # Desplazamiento pequeño
-    SHIFT_MEDIUM = 70  # Desplazamiento mediano
-    SHIFT_LARGE = 120  # Desplazamiento grande
+    # Rango: 100px (mínimo) a 350px (máximo)
+    # Aumentados drásticamente para facturas que ocupan toda la página A4
+    SHIFT_SMALL = 100   # Desplazamiento pequeño (1.4 pulgadas @ 300 DPI)
+    SHIFT_MEDIUM = 200  # Desplazamiento mediano (2.8 pulgadas @ 300 DPI)
+    SHIFT_LARGE = 350   # Desplazamiento grande (4.9 pulgadas @ 300 DPI)
 
     # Banco completo de 16 transformaciones disponibles (en orden de prioridad)
     # El usuario puede elegir cuántas usar (1-16)
@@ -190,8 +191,8 @@ class InvoiceAugmenter:
         - Resultado: PDF con SOLO contenido, sin espacios vacíos
 
         FASE 2 - DESPLAZAMIENTO:
-        - Aplica desplazamientos (30px, 70px, 120px) al contenido YA RECORTADO
-        - Los shifts son VISUALMENTE NOTORIOS (no se pierden en márgenes)
+        - Aplica desplazamientos DRAMÁTICOS (100px, 200px, 350px) al contenido YA RECORTADO
+        - Los shifts son EXTREMADAMENTE NOTORIOS (1.4-4.9 pulgadas @ 300 DPI)
         - Mantiene calidad vectorial 100%
 
         VENTAJAS:
